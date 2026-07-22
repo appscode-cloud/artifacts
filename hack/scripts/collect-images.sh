@@ -17,8 +17,8 @@
 # Collect per-repo catalog image lists into <APPSCODE_CLOUD_TAG>/<org>-images.yaml.
 #
 # For every installer repo it clones the given tag, regenerates the catalog via
-# that repo's own `make update-catalog`, and copies catalog/imagelist.yaml into
-# the output directory.
+# that repo's own hack/scripts/update-catalog.sh (which drives the image-packer
+# binary), and copies catalog/imagelist.yaml into the output directory.
 #
 # Required env vars (each is the git ref to checkout for that repo):
 #   APPSCODE_CLOUD_TAG   -> appscode-cloud/installer   (also names the output dir)
@@ -59,6 +59,32 @@ trap 'rm -rf "${WORK_DIR}"' EXIT
 
 mkdir -p "${OUT_DIR}"
 
+# image-packer drives each repo's hack/scripts/update-catalog.sh. Install the
+# version pinned by appscode-cloud/installer's go.mod at APPSCODE_CLOUD_TAG so it
+# matches the release being collected. image-packer's go.mod carries replace
+# directives, so `go install pkg@version` is rejected; instead build from source
+# at the pinned ref, where its go.mod is the main module and replaces are honored.
+echo "==> resolving image-packer version from appscode-cloud/installer @ ${APPSCODE_CLOUD_TAG}"
+gomod="$(curl -fsSL "https://raw.githubusercontent.com/appscode-cloud/installer/${APPSCODE_CLOUD_TAG}/go.mod")"
+ipk_ver="$(echo "${gomod}" | awk '/kmodules.xyz\/image-packer/ {print $2; exit}')"
+if [ -z "${ipk_ver}" ]; then
+    echo "ERROR: could not resolve image-packer version from appscode-cloud/installer go.mod" >&2
+    exit 1
+fi
+# A pseudo-version (vX-YYYYMMDDhhmmss-<12-hex-commit>) resolves to its commit;
+# a plain tag is used as-is.
+if [[ "${ipk_ver}" =~ -([0-9a-f]{12})$ ]]; then
+    ipk_ref="${BASH_REMATCH[1]}"
+else
+    ipk_ref="${ipk_ver}"
+fi
+GOBIN="$(go env GOPATH)/bin"
+echo "--> building kmodules.xyz/image-packer @ ${ipk_ref} (from ${ipk_ver})"
+git clone --filter=blob:none https://github.com/kmodules/image-packer.git "${WORK_DIR}/image-packer"
+git -C "${WORK_DIR}/image-packer" checkout --quiet "${ipk_ref}"
+( cd "${WORK_DIR}/image-packer" && go build -o "${GOBIN}/image-packer" . )
+export PATH="${GOBIN}:${PATH}"
+
 for entry in "${REPOS[@]}"; do
     org="${entry%%|*}"
     tag_var="${entry##*|}"
@@ -73,8 +99,8 @@ for entry in "${REPOS[@]}"; do
     src="${WORK_DIR}/${org}"
     git clone --depth 1 --branch "${tag}" "https://github.com/${org}/installer.git" "${src}"
 
-    echo "--> make update-catalog (${org})"
-    make -C "${src}" update-catalog
+    echo "--> update-catalog (${org})"
+    ( cd "${src}" && ./hack/scripts/update-catalog.sh )
 
     imagelist="${src}/catalog/imagelist.yaml"
     if [ ! -f "${imagelist}" ]; then

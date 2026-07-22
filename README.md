@@ -9,8 +9,14 @@ On `workflow_dispatch` (`.github/workflows/collect-images.yml`) it takes one git
 tag per installer repo, and for each repo:
 
 1. clones the repo at that tag,
-2. regenerates the catalog via the repo's own `make update-catalog`,
+2. regenerates the catalog via the repo's own `hack/scripts/update-catalog.sh`
+   (which drives the `image-packer` binary — see below),
 3. copies `catalog/imagelist.yaml` into `<appscode_cloud_tag>/<org>-images.yaml`.
+
+`image-packer` (`kmodules.xyz/image-packer`) is `go install`ed by
+`collect-images.sh` at the version pinned in `appscode-cloud/installer`'s `go.mod`
+for `APPSCODE_CLOUD_TAG`, so the tooling matches the release being collected. A Go
+toolchain must be on `PATH`.
 
 The **appscode-cloud tag names the output directory**.
 
