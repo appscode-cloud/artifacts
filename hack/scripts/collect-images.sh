@@ -42,6 +42,15 @@ REPOS=(
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
+# Seed tags from default-tags.env when present; already-set env vars win.
+ENV_FILE="${REPO_ROOT}/default-tags.env"
+if [ -f "${ENV_FILE}" ]; then
+    while IFS='=' read -r k v; do
+        [[ "${k}" =~ ^[A-Z_]+$ ]] || continue
+        [ -z "${!k:-}" ] && export "${k}=${v}"
+    done < <(grep -E '^[A-Z_]+=' "${ENV_FILE}")
+fi
+
 : "${APPSCODE_CLOUD_TAG:?APPSCODE_CLOUD_TAG must be set (names the output dir)}"
 OUT_DIR="${REPO_ROOT}/${APPSCODE_CLOUD_TAG}"
 

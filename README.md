@@ -25,6 +25,20 @@ The **appscode-cloud tag names the output directory**.
 | `kluster-manager/installer` | `kluster-manager-images.yaml` |
 | `open-viz/installer` | `open-viz-images.yaml` |
 
+## Default tags
+
+`default-tags.env` holds one tag per repo. GitHub can't read a file to fill
+`workflow_dispatch` defaults at runtime, so after editing it run:
+
+```sh
+make sync-defaults
+```
+
+That bakes the values into the workflow's `default:` fields (between the
+`dispatch-defaults` markers) so they appear pre-filled in the "Run workflow" UI.
+Commit the workflow change. `make collect` also reads `default-tags.env` for
+local runs; explicit environment variables override it.
+
 ## Run locally (on a VM)
 
 ```sh

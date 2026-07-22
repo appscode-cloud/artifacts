@@ -15,3 +15,7 @@
 .PHONY: collect
 collect:
 	./hack/scripts/collect-images.sh
+
+.PHONY: sync-defaults
+sync-defaults:
+	./hack/scripts/sync-dispatch-defaults.sh
