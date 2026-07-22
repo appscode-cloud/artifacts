@@ -17,8 +17,8 @@
 # Collect per-repo catalog image lists into <APPSCODE_CLOUD_TAG>/<org>-images.yaml.
 #
 # For every installer repo it clones the given tag, regenerates the catalog via
-# that repo's own `make update-catalog`, and copies catalog/imagelist.yaml into
-# the output directory.
+# that repo's own hack/scripts/update-catalog.sh (which drives the image-packer
+# binary), and copies catalog/imagelist.yaml into the output directory.
 #
 # Required env vars (each is the git ref to checkout for that repo):
 #   APPSCODE_CLOUD_TAG   -> appscode-cloud/installer   (also names the output dir)
@@ -59,6 +59,20 @@ trap 'rm -rf "${WORK_DIR}"' EXIT
 
 mkdir -p "${OUT_DIR}"
 
+# image-packer drives each repo's hack/scripts/update-catalog.sh. Install the
+# version pinned by appscode-cloud/installer's go.mod at APPSCODE_CLOUD_TAG so it
+# matches the release being collected.
+echo "==> resolving image-packer version from appscode-cloud/installer @ ${APPSCODE_CLOUD_TAG}"
+gomod="$(curl -fsSL "https://raw.githubusercontent.com/appscode-cloud/installer/${APPSCODE_CLOUD_TAG}/go.mod")"
+ipk_ver="$(echo "${gomod}" | awk '/kmodules.xyz\/image-packer/ {print $2; exit}')"
+if [ -z "${ipk_ver}" ]; then
+    echo "ERROR: could not resolve image-packer version from appscode-cloud/installer go.mod" >&2
+    exit 1
+fi
+echo "--> go install kmodules.xyz/image-packer@${ipk_ver}"
+go install "kmodules.xyz/image-packer@${ipk_ver}"
+export PATH="$(go env GOPATH)/bin:${PATH}"
+
 for entry in "${REPOS[@]}"; do
     org="${entry%%|*}"
     tag_var="${entry##*|}"
@@ -73,8 +87,8 @@ for entry in "${REPOS[@]}"; do
     src="${WORK_DIR}/${org}"
     git clone --depth 1 --branch "${tag}" "https://github.com/${org}/installer.git" "${src}"
 
-    echo "--> make update-catalog (${org})"
-    make -C "${src}" update-catalog
+    echo "--> update-catalog (${org})"
+    ( cd "${src}" && ./hack/scripts/update-catalog.sh )
 
     imagelist="${src}/catalog/imagelist.yaml"
     if [ ! -f "${imagelist}" ]; then
