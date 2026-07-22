@@ -1,0 +1,93 @@
+name: Collect Images
+
+on:
+  workflow_dispatch:
+    inputs:
+      appscode_cloud_tag:
+        description: 'appscode-cloud/installer tag (also names the output dir)'
+        required: true
+      kubedb_tag:
+        description: 'kubedb/installer tag'
+        required: true
+      kubestash_tag:
+        description: 'kubestash/installer tag'
+        required: true
+      kubeops_tag:
+        description: 'kubeops/installer tag'
+        required: true
+      kluster_manager_tag:
+        description: 'kluster-manager/installer tag'
+        required: true
+      open_viz_tag:
+        description: 'open-viz/installer tag'
+        required: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.inputs.appscode_cloud_tag }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  collect:
+    name: Collect
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version: 'stable'
+          cache: false
+
+      - name: Prepare host
+        run: |
+          # install yq (v3 shim used by the installer repos)
+          curl -fsSL -o yqq https://github.com/mikefarah/yq/releases/download/3.3.0/yq_linux_amd64
+          chmod +x yqq
+          sudo mv yqq /usr/local/bin/yqq
+          pipx install yq
+          # install x-helm build of helm 3
+          pushd /usr/local/bin && sudo curl -fsSLO https://github.com/x-helm/helm/releases/latest/download/helm && sudo chmod +x helm && popd
+
+      # Scaffolded for future use (image verification / scanning). Not consumed
+      # by image-list collection yet.
+      - name: Create Kubernetes cluster
+        id: kind
+        uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1.14.0
+        with:
+          version: v0.31.0
+
+      - name: Collect image lists
+        env:
+          APPSCODE_CLOUD_TAG: ${{ github.event.inputs.appscode_cloud_tag }}
+          KUBEDB_TAG: ${{ github.event.inputs.kubedb_tag }}
+          KUBESTASH_TAG: ${{ github.event.inputs.kubestash_tag }}
+          KUBEOPS_TAG: ${{ github.event.inputs.kubeops_tag }}
+          KLUSTER_MANAGER_TAG: ${{ github.event.inputs.kluster_manager_tag }}
+          OPEN_VIZ_TAG: ${{ github.event.inputs.open_viz_tag }}
+        run: ./hack/scripts/collect-images.sh
+
+      - name: Open pull request
+        uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e # v7.0.8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: collect/${{ github.event.inputs.appscode_cloud_tag }}
+          commit-message: "Collect images for ${{ github.event.inputs.appscode_cloud_tag }}"
+          title: "Collect images for ${{ github.event.inputs.appscode_cloud_tag }}"
+          body: |
+            Image lists collected via `workflow_dispatch`.
+
+            | repo | tag |
+            |------|-----|
+            | appscode-cloud/installer | `${{ github.event.inputs.appscode_cloud_tag }}` |
+            | kubedb/installer | `${{ github.event.inputs.kubedb_tag }}` |
+            | kubestash/installer | `${{ github.event.inputs.kubestash_tag }}` |
+            | kubeops/installer | `${{ github.event.inputs.kubeops_tag }}` |
+            | kluster-manager/installer | `${{ github.event.inputs.kluster_manager_tag }}` |
+            | open-viz/installer | `${{ github.event.inputs.open_viz_tag }}` |
+          add-paths: ${{ github.event.inputs.appscode_cloud_tag }}/**
+          signoff: true
+          delete-branch: true
