@@ -77,6 +77,13 @@ jobs:
           OPEN_VIZ_TAG: ${{ github.event.inputs.open_viz_tag }}
         run: ./hack/scripts/collect-images.sh
 
+      - name: Aggregate grouped lists and README
+        env:
+          TAG: ${{ github.event.inputs.appscode_cloud_tag }}
+        run: |
+          bash bare-scripts/aggregate-lists.sh "${TAG}"
+          cp bare-scripts/notes.md "${TAG}/README.md"
+
       - name: Push image lists to tag branch
         env:
           TAG: ${{ github.event.inputs.appscode_cloud_tag }}
@@ -84,6 +91,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch --orphan "${TAG}"
-          git add "${TAG}"
+          # collect-images.sh names the output dir after the tag; the branch is
+          # already the tag, so flatten it to the branch root before committing.
+          mv "${TAG}"/* .
+          rmdir "${TAG}"
+          git add -A
           git commit -s -m "Collect images for ${TAG}"
           git push --force origin "${TAG}"
