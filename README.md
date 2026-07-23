@@ -14,7 +14,7 @@ tag per installer repo, and for each repo:
 3. copies `catalog/imagelist.yaml` into `<appscode_cloud_tag>/<org>-images.yaml`.
 
 `image-packer` (`kmodules.xyz/image-packer`) is `go install`ed by
-`collect-images.sh` at the version pinned in `appscode-cloud/installer`'s `go.mod`
+`collect-from-orgs.sh` at the version pinned in `appscode-cloud/installer`'s `go.mod`
 for `APPSCODE_CLOUD_TAG`, so the tooling matches the release being collected. A Go
 toolchain must be on `PATH`.
 

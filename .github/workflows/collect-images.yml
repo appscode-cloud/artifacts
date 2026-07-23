@@ -59,15 +59,7 @@ jobs:
           # install x-helm build of helm 3
           pushd /usr/local/bin && sudo curl -fsSLO https://github.com/x-helm/helm/releases/latest/download/helm && sudo chmod +x helm && popd
 
-      # Scaffolded for future use (image verification / scanning). Not consumed
-      # by image-list collection yet.
-      - name: Create Kubernetes cluster
-        id: kind
-        uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1.14.0
-        with:
-          version: v0.31.0
-
-      - name: Collect image lists
+      - name: Collect image lists from installer orgs
         env:
           APPSCODE_CLOUD_TAG: ${{ github.event.inputs.appscode_cloud_tag }}
           KUBEDB_TAG: ${{ github.event.inputs.kubedb_tag }}
@@ -75,7 +67,12 @@ jobs:
           KUBEOPS_TAG: ${{ github.event.inputs.kubeops_tag }}
           KLUSTER_MANAGER_TAG: ${{ github.event.inputs.kluster_manager_tag }}
           OPEN_VIZ_TAG: ${{ github.event.inputs.open_viz_tag }}
-        run: ./hack/scripts/collect-images.sh
+        run: ./hack/scripts/collect-from-orgs.sh
+
+      - name: Collect image lists from external charts
+        env:
+          APPSCODE_CLOUD_TAG: ${{ github.event.inputs.appscode_cloud_tag }}
+        run: ./hack/scripts/collect-externals.sh
 
       - name: Aggregate grouped lists and README
         env:
@@ -91,7 +88,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch --orphan "${TAG}"
-          # collect-images.sh names the output dir after the tag; the branch is
+          # collect-from-orgs.sh names the output dir after the tag; the branch is
           # already the tag, so flatten it to the branch root before committing.
           mv "${TAG}"/* .
           rmdir "${TAG}"

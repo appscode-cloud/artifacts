@@ -17,12 +17,3 @@
 # kubestash
 - img1
 ```
-
-Regenerate them from the branch root with:
-
-```sh
-bash scripts/aggregate-lists.sh
-```
-
-It reads `images/` and `charts/` from the current directory (pass a different
-base dir as the first argument) and overwrites the two `all-*.yaml` files.

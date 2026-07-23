@@ -1,0 +1,73 @@
+alertmanager:
+  alertmanagerSpec:
+    image:
+      registry: quay.io
+defaultRules:
+  disabled:
+    KubeAggregatedAPIDown: true
+    KubeControllerManagerDown: true
+    KubeProxyDown: true
+    KubeSchedulerDown: true
+grafana:
+  downloadDashboardsImage:
+    repository: curlimages/curl
+  enabled: false
+  image:
+    repository: grafana/grafana
+  imageRenderer:
+    image:
+      repository: grafana/grafana-image-renderer
+  initChownData:
+    image:
+      repository: busybox
+  sidecar:
+    image:
+      repository: quay.io/kiwigrid/k8s-sidecar
+  testFramework:
+    image: bats/bats:1.11.0
+kube-state-metrics:
+  image:
+    registry: registry.k8s.io
+prometheus:
+  prometheusSpec:
+    image:
+      registry: quay.io
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+          - ReadWriteOnce
+          resources:
+            requests:
+              storage: 50Gi
+prometheus-node-exporter:
+  image:
+    registry: quay.io
+  prometheus:
+    monitor:
+      relabelings:
+      - action: replace
+        regex: ^(.*)$
+        replacement: $1
+        separator: ;
+        sourceLabels:
+        - __meta_kubernetes_pod_node_name
+        targetLabel: node
+  tolerations:
+  - operator: Exists
+prometheusOperator:
+  admissionWebhooks:
+    patch:
+      image:
+        registry: registry.k8s.io
+  image:
+    registry: quay.io
+  prometheusConfigReloader:
+    image:
+      registry: quay.io
+  thanosImage:
+    registry: quay.io
+thanosRuler:
+  thanosRulerSpec:
+    image:
+      registry: quay.io

@@ -1,0 +1,17 @@
+acmesolver:
+  image:
+    repository: ghcr.io/appscode-images/cert-manager-acmesolver
+cainjector:
+  image:
+    repository: ghcr.io/appscode-images/cert-manager-cainjector
+extraArgs:
+- --enable-gateway-api
+image:
+  repository: ghcr.io/appscode-images/cert-manager-controller
+installCRDs: true
+startupapicheck:
+  image:
+    repository: ghcr.io/appscode-images/cert-manager-startupapicheck
+webhook:
+  image:
+    repository: ghcr.io/appscode-images/cert-manager-webhook

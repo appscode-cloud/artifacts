@@ -14,7 +14,8 @@
 
 .PHONY: collect
 collect:
-	./hack/scripts/collect-images.sh
+	./hack/scripts/collect-from-orgs.sh
+	./hack/scripts/collect-externals.sh
 
 .PHONY: sync-defaults
 sync-defaults:
