@@ -14,11 +14,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Collect per-repo catalog image lists into <APPSCODE_CLOUD_TAG>/<org>-images.yaml.
+# Collect per-repo catalog image lists into <APPSCODE_CLOUD_TAG>/images/<org>.yaml.
 #
 # For every installer repo it clones the given tag, regenerates the catalog via
 # that repo's own hack/scripts/update-catalog.sh (which drives the image-packer
 # binary), and copies catalog/imagelist.yaml into the output directory.
+#
+# For appscode-cloud/installer only, it also copies the catalog chart lists
+# (ace.yaml, editor-charts.yaml, feature-charts.yaml, reusable-ui-charts.yaml)
+# into <APPSCODE_CLOUD_TAG>/charts/.
 #
 # Required env vars (each is the git ref to checkout for that repo):
 #   APPSCODE_CLOUD_TAG   -> appscode-cloud/installer   (also names the output dir)
@@ -53,11 +57,16 @@ fi
 
 : "${APPSCODE_CLOUD_TAG:?APPSCODE_CLOUD_TAG must be set (names the output dir)}"
 OUT_DIR="${REPO_ROOT}/${APPSCODE_CLOUD_TAG}"
+IMAGES_DIR="${OUT_DIR}/images"
+CHARTS_DIR="${OUT_DIR}/charts"
+
+# Chart lists copied from appscode-cloud/installer's catalog/ into CHARTS_DIR.
+CHART_FILES=(ace.yaml editor-charts.yaml feature-charts.yaml reusable-ui-charts.yaml)
 
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "${WORK_DIR}"' EXIT
 
-mkdir -p "${OUT_DIR}"
+mkdir -p "${IMAGES_DIR}" "${CHARTS_DIR}"
 
 # image-packer drives each repo's hack/scripts/update-catalog.sh. Install the
 # version pinned by appscode-cloud/installer's go.mod at APPSCODE_CLOUD_TAG so it
@@ -108,10 +117,25 @@ for entry in "${REPOS[@]}"; do
         exit 1
     fi
 
-    cp "${imagelist}" "${OUT_DIR}/${org}-images.yaml"
-    echo "--> wrote ${OUT_DIR}/${org}-images.yaml"
+    cp "${imagelist}" "${IMAGES_DIR}/${org}.yaml"
+    echo "--> wrote ${IMAGES_DIR}/${org}.yaml"
+
+    if [ "${org}" = "appscode-cloud" ]; then
+        for chart in "${CHART_FILES[@]}"; do
+            chartsrc="${src}/catalog/${chart}"
+            if [ ! -f "${chartsrc}" ]; then
+                echo "ERROR: ${chartsrc} not found for appscode-cloud/installer" >&2
+                exit 1
+            fi
+            cp "${chartsrc}" "${CHARTS_DIR}/${chart}"
+            echo "--> wrote ${CHARTS_DIR}/${chart}"
+        done
+    fi
 done
 
 echo
-echo "Collected image lists in ${OUT_DIR}:"
-ls -1 "${OUT_DIR}"
+echo "Collected image lists in ${IMAGES_DIR}:"
+ls -1 "${IMAGES_DIR}"
+echo
+echo "Collected chart lists in ${CHARTS_DIR}:"
+ls -1 "${CHARTS_DIR}"
