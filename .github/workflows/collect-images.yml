@@ -36,7 +36,6 @@ concurrency:
 
 permissions:
   contents: write
-  pull-requests: write
 
 jobs:
   collect:
@@ -78,24 +77,13 @@ jobs:
           OPEN_VIZ_TAG: ${{ github.event.inputs.open_viz_tag }}
         run: ./hack/scripts/collect-images.sh
 
-      - name: Open pull request
-        uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e # v7.0.8
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: collect/${{ github.event.inputs.appscode_cloud_tag }}
-          commit-message: "Collect images for ${{ github.event.inputs.appscode_cloud_tag }}"
-          title: "Collect images for ${{ github.event.inputs.appscode_cloud_tag }}"
-          body: |
-            Image lists collected via `workflow_dispatch`.
-
-            | repo | tag |
-            |------|-----|
-            | appscode-cloud/installer | `${{ github.event.inputs.appscode_cloud_tag }}` |
-            | kubedb/installer | `${{ github.event.inputs.kubedb_tag }}` |
-            | kubestash/installer | `${{ github.event.inputs.kubestash_tag }}` |
-            | kubeops/installer | `${{ github.event.inputs.kubeops_tag }}` |
-            | kluster-manager/installer | `${{ github.event.inputs.kluster_manager_tag }}` |
-            | open-viz/installer | `${{ github.event.inputs.open_viz_tag }}` |
-          add-paths: ${{ github.event.inputs.appscode_cloud_tag }}/**
-          signoff: true
-          delete-branch: true
+      - name: Push image lists to tag branch
+        env:
+          TAG: ${{ github.event.inputs.appscode_cloud_tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch --orphan "${TAG}"
+          git add "${TAG}"
+          git commit -s -m "Collect images for ${TAG}"
+          git push --force origin "${TAG}"
