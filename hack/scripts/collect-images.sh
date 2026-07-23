@@ -59,6 +59,8 @@ fi
 OUT_DIR="${REPO_ROOT}/${APPSCODE_CLOUD_TAG}"
 IMAGES_DIR="${OUT_DIR}/images"
 CHARTS_DIR="${OUT_DIR}/charts"
+SCRIPTS_DIR="${OUT_DIR}/scripts"
+SCRIPTS_SRC="${REPO_ROOT}/bare-scripts"
 
 # Chart lists copied from appscode-cloud/installer's catalog/ into CHARTS_DIR.
 CHART_FILES=(ace.yaml editor-charts.yaml feature-charts.yaml reusable-ui-charts.yaml)
@@ -66,7 +68,10 @@ CHART_FILES=(ace.yaml editor-charts.yaml feature-charts.yaml reusable-ui-charts.
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "${WORK_DIR}"' EXIT
 
-mkdir -p "${IMAGES_DIR}" "${CHARTS_DIR}"
+mkdir -p "${IMAGES_DIR}" "${CHARTS_DIR}" "${SCRIPTS_DIR}"
+
+# Ship the bare helper scripts (import/export/copy) and notes into the branch as-is.
+cp "${SCRIPTS_SRC}"/* "${SCRIPTS_DIR}/"
 
 # image-packer drives each repo's hack/scripts/update-catalog.sh. Install the
 # version pinned by appscode-cloud/installer's go.mod at APPSCODE_CLOUD_TAG so it
