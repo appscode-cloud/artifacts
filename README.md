@@ -20,8 +20,8 @@ git tag — `appscode_cloud_tag` — and runs, in order:
    images to `images/<chart>.yaml`. The chart version is resolved from the
    `charts/` lists collected in step 1, so it stays in sync with the release.
 3. `go run . kluster-manager` — `helm template` the two kluster-manager charts
-   whose images sit inside CR specs (so `image-packer` does not see them) and write
-   them to `images/<chart>.yaml`. See
+   whose images sit inside CR specs (so `image-packer` does not see them) and merge
+   them into `images/kluster-manager.yaml`. See
    [CR-embedded images](#cr-embedded-images).
 4. `bare-scripts/aggregate-lists.sh` — merge `images/*.yaml` and `charts/*.yaml`
    into grouped `all-images.yaml` / `all-charts.yaml`, each source file becoming a
@@ -53,9 +53,7 @@ The **appscode-cloud tag names the output directory and the branch**.
 │   ├── flux2.yaml
 │   ├── keda.yaml
 │   ├── keda-add-ons-http.yaml
-│   ├── snapshot-controller.yaml
-│   ├── cluster-manager-hub.yaml
-│   └── fluxcd-manager.yaml
+│   └── snapshot-controller.yaml
 ├── charts/
 │   ├── ace.yaml
 │   ├── editor-charts.yaml
@@ -126,10 +124,15 @@ so they never appear in `kluster-manager/installer`'s `catalog/imagelist.yaml`.
 `go run . kluster-manager` renders just those templates (versions resolved from
 `charts/*.yaml`, like the external charts) and extracts them:
 
-| chart | template | images from | output |
-|-------|----------|-------------|--------|
-| `cluster-manager-hub` | `templates/clustermanager.cr.yaml` | `ClusterManager` `*ImagePullSpec` fields | `images/cluster-manager-hub.yaml` |
-| `fluxcd-manager` | `templates/ocm/addon/fluxcd_config.yaml` | `FluxCDConfig` `image` fields | `images/fluxcd-manager.yaml` |
+| chart | template | images from |
+|-------|----------|-------------|
+| `cluster-manager-hub` | `templates/clustermanager.cr.yaml` | `ClusterManager` `*ImagePullSpec` fields |
+| `fluxcd-manager` | `templates/ocm/addon/fluxcd_config.yaml` | `FluxCDConfig` `image` fields |
+
+Both charts belong to kluster-manager, so their images are merged into the
+`images/kluster-manager.yaml` written in step 1 (union, sorted and deduped) instead
+of becoming their own `all-images.yaml` sections. The merge is a union, so the
+command is safe to re-run.
 
 `FluxCDConfig` overrides the flux image repositories but not their tags — those
 stay at the defaults of the flux2 chart embedded in the `fluxcd-addon` binary. So

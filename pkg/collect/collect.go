@@ -85,6 +85,21 @@ func chartVersion(chartsDir, chart string) (string, error) {
 	return "", nil
 }
 
+func readList(path string) ([]string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var refs []string
+	for line := range strings.SplitSeq(string(data), "\n") {
+		if ref, ok := strings.CutPrefix(strings.TrimSpace(line), "- "); ok {
+			refs = append(refs, strings.TrimSpace(ref))
+		}
+	}
+	return refs, nil
+}
+
 func writeList(path string, refs []string) error {
 	var sb strings.Builder
 	for _, ref := range refs {

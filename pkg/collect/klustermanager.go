@@ -26,7 +26,10 @@ limitations under the License.
 // Chart versions are resolved from the chart lists collected by from-orgs
 // (<APPSCODE_CLOUD_TAG>/charts/*.yaml), so this stays in sync with the release.
 //
-// Must run AFTER from-orgs (needs charts/ for versions and images/ to exist).
+// Both charts belong to kluster-manager, so their images are merged into
+// images/kluster-manager.yaml rather than kept as separate lists.
+//
+// Must run AFTER from-orgs (needs charts/ for versions and images/kluster-manager.yaml).
 
 package collect
 
@@ -51,7 +54,7 @@ var (
 )
 
 var crCharts = []struct {
-	name   string // == OCI chart name == output basename
+	name   string // == OCI chart name
 	images func(version string) ([]string, error)
 }{
 	{name: "cluster-manager-hub", images: clusterManagerHubImages},
@@ -67,10 +70,14 @@ func KlusterManager() error {
 	if _, err := os.Stat(l.charts); err != nil {
 		return fmt.Errorf("%s not found; run from-orgs first", l.charts)
 	}
-	if err := os.MkdirAll(l.images, 0o755); err != nil {
-		return err
+	out := filepath.Join(l.images, "kluster-manager.yaml")
+	existing, err := readList(out)
+	if err != nil {
+		return fmt.Errorf("%s not found; run from-orgs first: %w", out, err)
 	}
 
+	refs := sortUnique(existing)
+	before := len(refs)
 	for _, c := range crCharts {
 		ver, err := chartVersion(l.charts, c.name)
 		if err != nil {
@@ -81,17 +88,19 @@ func KlusterManager() error {
 		}
 
 		fmt.Printf("==> %s @ %s\n", c.name, ver)
-		refs, err := c.images(ver)
+		found, err := c.images(ver)
 		if err != nil {
 			return err
 		}
-
-		out := filepath.Join(l.images, c.name+".yaml")
-		if err := writeList(out, refs); err != nil {
-			return err
-		}
-		fmt.Printf("--> wrote %s (%d images)\n", out, len(refs))
+		fmt.Printf("--> %d images\n", len(found))
+		refs = append(refs, found...)
 	}
+
+	refs = sortUnique(refs)
+	if err := writeList(out, refs); err != nil {
+		return err
+	}
+	fmt.Printf("--> wrote %s (%d images, %d new from CR specs)\n", out, len(refs), len(refs)-before)
 	return nil
 }
 
