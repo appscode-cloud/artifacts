@@ -24,38 +24,30 @@
 # (ace.yaml, editor-charts.yaml, feature-charts.yaml, reusable-ui-charts.yaml)
 # into <APPSCODE_CLOUD_TAG>/charts/.
 #
-# Required env vars (each is the git ref to checkout for that repo):
-#   APPSCODE_CLOUD_TAG   -> appscode-cloud/installer   (also names the output dir)
-#   KUBEDB_TAG           -> kubedb/installer
-#   KUBESTASH_TAG        -> kubestash/installer
-#   KUBEOPS_TAG          -> kubeops/installer
-#   KLUSTER_MANAGER_TAG  -> kluster-manager/installer
-#   OPEN_VIZ_TAG         -> open-viz/installer
-#   OPNPULSE_TAG         -> opnpulse/installer
+# APPSCODE_CLOUD_TAG is the only input; it names the output dir and the release
+# being collected. Every component repo's tag is derived from it: each
+# component owns one anchor chart whose version appscode-cloud/installer pins in
+# its catalog lists, and that pinned version is the component's tag. Picking the
+# component tags by hand collects images for chart versions this ACE release does
+# not deploy, which silently breaks an air-gapped mirror.
+#
+# Each derived tag can still be overridden by exporting its env var (KUBEDB_TAG,
+# KUBESTASH_TAG, KUBEOPS_TAG, KLUSTER_MANAGER_TAG, OPEN_VIZ_TAG, OPNPULSE_TAG),
+# e.g. to collect an rc ahead of an ACE release; each override is logged.
 
 set -eou pipefail
 
-# repo org | tag env var | output file basename (== org)
-REPOS=(
-    "appscode-cloud|APPSCODE_CLOUD_TAG"
-    "kubedb|KUBEDB_TAG"
-    "kubestash|KUBESTASH_TAG"
-    "kubeops|KUBEOPS_TAG"
-    "kluster-manager|KLUSTER_MANAGER_TAG"
-    "open-viz|OPEN_VIZ_TAG"
-    "opnpulse|OPNPULSE_TAG"
+# component org | tag env var | anchor chart pinned by appscode-cloud/installer
+COMPONENTS=(
+    "kubedb|KUBEDB_TAG|kubedb"
+    "kubestash|KUBESTASH_TAG|kubestash"
+    "kubeops|KUBEOPS_TAG|kube-ui-server"
+    "kluster-manager|KLUSTER_MANAGER_TAG|cluster-profile-manager"
+    "open-viz|OPEN_VIZ_TAG|monitoring-operator"
+    "opnpulse|OPNPULSE_TAG|appscode-otel-stack"
 )
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-
-# Seed tags from default-tags.env when present; already-set env vars win.
-ENV_FILE="${REPO_ROOT}/default-tags.env"
-if [ -f "${ENV_FILE}" ]; then
-    while IFS='=' read -r k v; do
-        [[ "${k}" =~ ^[A-Z_]+$ ]] || continue
-        [ -z "${!k:-}" ] && export "${k}=${v}"
-    done < <(grep -E '^[A-Z_]+=' "${ENV_FILE}")
-fi
 
 : "${APPSCODE_CLOUD_TAG:?APPSCODE_CLOUD_TAG must be set (names the output dir)}"
 OUT_DIR="${REPO_ROOT}/${APPSCODE_CLOUD_TAG}"
@@ -101,24 +93,16 @@ git -C "${WORK_DIR}/image-packer" checkout --quiet "${ipk_ref}"
 ( cd "${WORK_DIR}/image-packer" && go build -o "${GOBIN}/image-packer" . )
 export PATH="${GOBIN}:${PATH}"
 
-for entry in "${REPOS[@]}"; do
-    org="${entry%%|*}"
-    tag_var="${entry##*|}"
-    tag="${!tag_var:-}"
-
-    if [ -z "${tag}" ]; then
-        echo "ERROR: ${tag_var} is not set for ${org}/installer" >&2
-        exit 1
-    fi
+collect_repo() {
+    local org="$1" tag="$2" src="${WORK_DIR}/$1"
 
     echo "==> ${org}/installer @ ${tag}"
-    src="${WORK_DIR}/${org}"
     git clone --depth 1 --branch "${tag}" "https://github.com/${org}/installer.git" "${src}"
 
     echo "--> update-catalog (${org})"
     ( cd "${src}" && ./hack/scripts/update-catalog.sh )
 
-    imagelist="${src}/catalog/imagelist.yaml"
+    local imagelist="${src}/catalog/imagelist.yaml"
     if [ ! -f "${imagelist}" ]; then
         echo "ERROR: ${imagelist} not found after update-catalog for ${org}/installer" >&2
         exit 1
@@ -126,18 +110,54 @@ for entry in "${REPOS[@]}"; do
 
     cp "${imagelist}" "${IMAGES_DIR}/${org}.yaml"
     echo "--> wrote ${IMAGES_DIR}/${org}.yaml"
+}
 
-    if [ "${org}" = "appscode-cloud" ]; then
-        for chart in "${CHART_FILES[@]}"; do
-            chartsrc="${src}/catalog/${chart}"
-            if [ ! -f "${chartsrc}" ]; then
-                echo "ERROR: ${chartsrc} not found for appscode-cloud/installer" >&2
-                exit 1
-            fi
-            cp "${chartsrc}" "${CHARTS_DIR}/${chart}"
-            echo "--> wrote ${CHARTS_DIR}/${chart}"
-        done
+# appscode-cloud/installer goes first: its catalog chart lists are what the
+# component tags are derived from.
+collect_repo appscode-cloud "${APPSCODE_CLOUD_TAG}"
+
+for chart in "${CHART_FILES[@]}"; do
+    chartsrc="${WORK_DIR}/appscode-cloud/catalog/${chart}"
+    if [ ! -f "${chartsrc}" ]; then
+        echo "ERROR: ${chartsrc} not found for appscode-cloud/installer" >&2
+        exit 1
     fi
+    cp "${chartsrc}" "${CHARTS_DIR}/${chart}"
+    echo "--> wrote ${CHARTS_DIR}/${chart}"
+done
+
+echo
+echo "==> deriving component tags from appscode-cloud/installer @ ${APPSCODE_CLOUD_TAG}"
+for entry in "${COMPONENTS[@]}"; do
+    org="${entry%%|*}"
+    rest="${entry#*|}"
+    tag_var="${rest%%|*}"
+    anchor="${rest##*|}"
+
+    # `|| true` keeps pipefail from killing the run on a no-match, so the
+    # explicit error below is what the user sees.
+    resolved="$(grep -hoE "appscode-charts/${anchor}:[^\"[:space:]]+" "${CHARTS_DIR}"/*.yaml | head -1 | sed -E "s#.*/${anchor}:##" || true)"
+    if [ -z "${resolved}" ]; then
+        echo "ERROR: anchor chart ${anchor} (${org}/installer) not pinned in ${CHARTS_DIR}/*.yaml;" >&2
+        echo "       it may have been renamed in ${APPSCODE_CLOUD_TAG} — update COMPONENTS" >&2
+        exit 1
+    fi
+
+    given="${!tag_var:-}"
+    if [ -n "${given}" ] && [ "${given}" != "${resolved}" ]; then
+        echo "WARNING: ${tag_var} overridden: ${resolved} (from ${anchor}) -> ${given}" >&2
+    else
+        echo "--> ${tag_var}=${resolved} (from ${anchor})"
+        export "${tag_var}=${resolved}"
+    fi
+done
+echo
+
+for entry in "${COMPONENTS[@]}"; do
+    org="${entry%%|*}"
+    rest="${entry#*|}"
+    tag_var="${rest%%|*}"
+    collect_repo "${org}" "${!tag_var}"
 done
 
 echo

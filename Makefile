@@ -16,7 +16,3 @@
 collect:
 	./hack/scripts/collect-from-orgs.sh
 	./hack/scripts/collect-externals.sh
-
-.PHONY: sync-defaults
-sync-defaults:
-	./hack/scripts/sync-dispatch-defaults.sh
