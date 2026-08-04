@@ -1,0 +1,5 @@
+- ghcr.io/appscode/flux-cli:v2.7.2
+- ghcr.io/fluxcd/helm-controller:v1.4.2
+- ghcr.io/fluxcd/kustomize-controller:v1.7.1
+- ghcr.io/fluxcd/notification-controller:v1.7.3
+- ghcr.io/fluxcd/source-controller:v1.7.2
