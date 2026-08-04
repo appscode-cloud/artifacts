@@ -42,6 +42,7 @@ The **appscode-cloud tag names the output directory and the branch**.
 │   ├── kubeops.yaml
 │   ├── kluster-manager.yaml
 │   ├── open-viz.yaml
+│   ├── opnpulse.yaml
 │   ├── kube-prometheus-stack.yaml
 │   ├── cert-manager.yaml
 │   ├── flux2.yaml
@@ -71,6 +72,7 @@ Installer repos (`hack/scripts/collect-from-orgs.sh`) — each cloned at its own
 | `kubeops/installer` | `KUBEOPS_TAG` | `images/kubeops.yaml` |
 | `kluster-manager/installer` | `KLUSTER_MANAGER_TAG` | `images/kluster-manager.yaml` |
 | `open-viz/installer` | `OPEN_VIZ_TAG` | `images/open-viz.yaml` |
+| `opnpulse/installer` | `OPNPULSE_TAG` | `images/opnpulse.yaml` |
 
 External OCI charts from `ghcr.io/appscode-charts` (`hack/scripts/collect-externals.sh`):
 
@@ -106,6 +108,7 @@ export KUBESTASH_TAG=...
 export KUBEOPS_TAG=...
 export KLUSTER_MANAGER_TAG=...
 export OPEN_VIZ_TAG=...
+export OPNPULSE_TAG=...
 make collect
 ```
 

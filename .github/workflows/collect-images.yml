@@ -28,6 +28,10 @@ on:
         description: 'open-viz/installer tag'
         required: true
         default: 'v2026.6.12'
+      opnpulse_tag:
+        description: 'opnpulse/installer tag'
+        required: true
+        default: 'v2026.7.15'
       # END dispatch-defaults
 
 concurrency:
@@ -67,6 +71,7 @@ jobs:
           KUBEOPS_TAG: ${{ github.event.inputs.kubeops_tag }}
           KLUSTER_MANAGER_TAG: ${{ github.event.inputs.kluster_manager_tag }}
           OPEN_VIZ_TAG: ${{ github.event.inputs.open_viz_tag }}
+          OPNPULSE_TAG: ${{ github.event.inputs.opnpulse_tag }}
         run: ./hack/scripts/collect-from-orgs.sh
 
       - name: Collect image lists from external charts

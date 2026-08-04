@@ -31,6 +31,7 @@
 #   KUBEOPS_TAG          -> kubeops/installer
 #   KLUSTER_MANAGER_TAG  -> kluster-manager/installer
 #   OPEN_VIZ_TAG         -> open-viz/installer
+#   OPNPULSE_TAG         -> opnpulse/installer
 
 set -eou pipefail
 
@@ -42,6 +43,7 @@ REPOS=(
     "kubeops|KUBEOPS_TAG"
     "kluster-manager|KLUSTER_MANAGER_TAG"
     "open-viz|OPEN_VIZ_TAG"
+    "opnpulse|OPNPULSE_TAG"
 )
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"

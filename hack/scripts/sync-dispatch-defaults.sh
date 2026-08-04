@@ -35,6 +35,7 @@ INPUTS=(
     "kubeops_tag|KUBEOPS_TAG|kubeops/installer tag"
     "kluster_manager_tag|KLUSTER_MANAGER_TAG|kluster-manager/installer tag"
     "open_viz_tag|OPEN_VIZ_TAG|open-viz/installer tag"
+    "opnpulse_tag|OPNPULSE_TAG|opnpulse/installer tag"
 )
 
 declare -A VAL
