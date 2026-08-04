@@ -34,6 +34,9 @@ CHARTS=(
     "kube-prometheus-stack|prometheus-stack-ci-values.yaml"
     "cert-manager|cert-manager-ci-values.yaml"
     "flux2|flux2-ci-values.yaml"
+    "keda|keda-ci-values.yaml"
+    "keda-add-ons-http|keda-add-ons-http-ci-values.yaml"
+    "snapshot-controller|snapshot-controller-ci-values.yaml"
 )
 
 OCI_PREFIX="oci://ghcr.io/appscode-charts"

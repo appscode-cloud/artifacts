@@ -1,0 +1,7 @@
+image:
+  keda:
+    registry: ghcr.io
+  metricsApiServer:
+    registry: ghcr.io
+  webhooks:
+    registry: ghcr.io

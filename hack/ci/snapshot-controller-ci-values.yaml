@@ -1,0 +1,6 @@
+controller:
+  image:
+    repository: registry.k8s.io/sig-storage/snapshot-controller
+webhook:
+  image:
+    repository: registry.k8s.io/sig-storage/snapshot-validation-webhook

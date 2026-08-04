@@ -1,0 +1,18 @@
+images:
+  interceptor: ghcr.io/kedacore/http-add-on-interceptor
+  kubeRbacProxy:
+    name: ghcr.io/appscode/kube-rbac-proxy
+  operator: ghcr.io/kedacore/http-add-on-operator
+  scaler: ghcr.io/kedacore/http-add-on-scaler
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  privileged: false
+  readOnlyRootFilesystem: true
+  runAsGroup: 1000
+  runAsNonRoot: true
+  runAsUser: 1000
+  seccompProfile:
+    type: RuntimeDefault
