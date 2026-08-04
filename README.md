@@ -19,10 +19,14 @@ git tag — `appscode_cloud_tag` — and runs, in order:
    CI values under `hack/ci/`, `helm template` the chart and write the referenced
    images to `images/<chart>.yaml`. The chart version is resolved from the
    `charts/` lists collected in step 1, so it stays in sync with the release.
-3. `bare-scripts/aggregate-lists.sh` — merge `images/*.yaml` and `charts/*.yaml`
+3. `go run . kluster-manager` — `helm template` the two kluster-manager charts
+   whose images sit inside CR specs (so `image-packer` does not see them) and write
+   them to `images/<chart>.yaml`. See
+   [CR-embedded images](#cr-embedded-images).
+4. `bare-scripts/aggregate-lists.sh` — merge `images/*.yaml` and `charts/*.yaml`
    into grouped `all-images.yaml` / `all-charts.yaml`, each source file becoming a
    `# <name>` section.
-4. push the directory to an orphan branch named after the appscode-cloud tag,
+5. push the directory to an orphan branch named after the appscode-cloud tag,
    flattened to the branch root, with `bare-scripts/notes.md` as its `README.md`.
 
 `image-packer` (`kmodules.xyz/image-packer`) is built from source by
@@ -49,7 +53,9 @@ The **appscode-cloud tag names the output directory and the branch**.
 │   ├── flux2.yaml
 │   ├── keda.yaml
 │   ├── keda-add-ons-http.yaml
-│   └── snapshot-controller.yaml
+│   ├── snapshot-controller.yaml
+│   ├── cluster-manager-hub.yaml
+│   └── fluxcd-manager.yaml
 ├── charts/
 │   ├── ace.yaml
 │   ├── editor-charts.yaml
@@ -112,6 +118,26 @@ External OCI charts from `ghcr.io/appscode-charts` (`go run . externals`):
 | `keda` | `hack/ci/keda-ci-values.yaml` | `images/keda.yaml` |
 | `keda-add-ons-http` | `hack/ci/keda-add-ons-http-ci-values.yaml` | `images/keda-add-ons-http.yaml` |
 | `snapshot-controller` | `hack/ci/snapshot-controller-ci-values.yaml` | `images/snapshot-controller.yaml` |
+
+### CR-embedded images
+
+Two kluster-manager charts declare images inside a CR spec rather than a pod spec,
+so they never appear in `kluster-manager/installer`'s `catalog/imagelist.yaml`.
+`go run . kluster-manager` renders just those templates (versions resolved from
+`charts/*.yaml`, like the external charts) and extracts them:
+
+| chart | template | images from | output |
+|-------|----------|-------------|--------|
+| `cluster-manager-hub` | `templates/clustermanager.cr.yaml` | `ClusterManager` `*ImagePullSpec` fields | `images/cluster-manager-hub.yaml` |
+| `fluxcd-manager` | `templates/ocm/addon/fluxcd_config.yaml` | `FluxCDConfig` `image` fields | `images/fluxcd-manager.yaml` |
+
+`FluxCDConfig` overrides the flux image repositories but not their tags — those
+stay at the defaults of the flux2 chart embedded in the `fluxcd-addon` binary. So
+each repo is joined with its tag from
+`kluster-manager/fluxcd-addon`'s `pkg/manager/agent-manifests/flux2/values.yaml`
+at the chart's `appVersion`, matched by section name (`helmController`,
+`sourceController`, …). A repo with no matching tag fails the run rather than
+emitting an untagged, unmirrorable ref.
 
 ## Run locally (on a VM)
 

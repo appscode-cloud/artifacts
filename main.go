@@ -35,6 +35,8 @@ func main() {
 		err = collect.FromOrgs()
 	case "externals":
 		err = collect.Externals()
+	case "kluster-manager":
+		err = collect.KlusterManager()
 	default:
 		usage()
 	}
@@ -48,8 +50,9 @@ func usage() {
 	fmt.Fprintf(os.Stderr, `usage: %s <command>
 
 Commands:
-  from-orgs   collect per-repo catalog image lists from the installer orgs
-  externals   collect image lists for external charts with curated CI values
+  from-orgs         collect per-repo catalog image lists from the installer orgs
+  externals         collect image lists for external charts with curated CI values
+  kluster-manager   collect kluster-manager images embedded in CR specs
 
 Required env var:
   APPSCODE_CLOUD_TAG   appscode-cloud/installer tag; names the output dir

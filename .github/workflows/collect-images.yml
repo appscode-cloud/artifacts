@@ -46,6 +46,11 @@ jobs:
           APPSCODE_CLOUD_TAG: ${{ github.event.inputs.appscode_cloud_tag }}
         run: go run . externals
 
+      - name: Collect kluster-manager images embedded in CR specs
+        env:
+          APPSCODE_CLOUD_TAG: ${{ github.event.inputs.appscode_cloud_tag }}
+        run: go run . kluster-manager
+
       - name: Aggregate grouped lists and README
         env:
           TAG: ${{ github.event.inputs.appscode_cloud_tag }}
