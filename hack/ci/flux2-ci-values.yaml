@@ -1,0 +1,14 @@
+cli:
+  image: ghcr.io/appscode/flux-cli
+helmController:
+  create: true
+imageAutomationController:
+  create: false
+imageReflectionController:
+  create: false
+kustomizeController:
+  create: true
+notificationController:
+  create: true
+sourceController:
+  create: true

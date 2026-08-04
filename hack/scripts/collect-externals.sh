@@ -33,6 +33,7 @@ set -eou pipefail
 CHARTS=(
     "kube-prometheus-stack|prometheus-stack-ci-values.yaml"
     "cert-manager|cert-manager-ci-values.yaml"
+    "flux2|flux2-ci-values.yaml"
 )
 
 OCI_PREFIX="oci://ghcr.io/appscode-charts"
