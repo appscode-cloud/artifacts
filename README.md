@@ -5,15 +5,16 @@ directory, and publishes it as an orphan branch named after the release tag.
 
 ## What it does
 
-On `workflow_dispatch` (`.github/workflows/collect-images.yml`) it takes one git
-tag per installer repo and runs, in order:
+On `workflow_dispatch` (`.github/workflows/collect-images.yml`) it takes a single
+git tag — `appscode_cloud_tag` — and runs, in order:
 
-1. `hack/scripts/collect-from-orgs.sh` — for each installer repo: clone it at the
-   given tag, regenerate the catalog via that repo's own
-   `hack/scripts/update-catalog.sh` (which drives `image-packer`), and copy
-   `catalog/imagelist.yaml` to `images/<org>.yaml`. For
-   `appscode-cloud/installer` only, the catalog chart lists are also copied into
-   `charts/`.
+1. `hack/scripts/collect-from-orgs.sh` — clone `appscode-cloud/installer` at that
+   tag, regenerate its catalog via its own `hack/scripts/update-catalog.sh` (which
+   drives `image-packer`), copy `catalog/imagelist.yaml` to
+   `images/appscode-cloud.yaml` and the catalog chart lists into `charts/`. Then
+   derive each component installer's tag from those chart lists (see
+   [Anchor charts](#anchor-charts)) and do the same clone + catalog + copy for
+   each one.
 2. `hack/scripts/collect-externals.sh` — for each external OCI chart with curated
    CI values under `hack/ci/`, `helm template` the chart and write the referenced
    images to `images/<chart>.yaml`. The chart version is resolved from the
@@ -64,15 +65,42 @@ The **appscode-cloud tag names the output directory and the branch**.
 
 Installer repos (`hack/scripts/collect-from-orgs.sh`) — each cloned at its own tag:
 
-| repo | tag env var | output |
-|------|-------------|--------|
-| `appscode-cloud/installer` | `APPSCODE_CLOUD_TAG` | `images/appscode-cloud.yaml` + `charts/*.yaml` |
-| `kubedb/installer` | `KUBEDB_TAG` | `images/kubedb.yaml` |
-| `kubestash/installer` | `KUBESTASH_TAG` | `images/kubestash.yaml` |
-| `kubeops/installer` | `KUBEOPS_TAG` | `images/kubeops.yaml` |
-| `kluster-manager/installer` | `KLUSTER_MANAGER_TAG` | `images/kluster-manager.yaml` |
-| `open-viz/installer` | `OPEN_VIZ_TAG` | `images/open-viz.yaml` |
-| `opnpulse/installer` | `OPNPULSE_TAG` | `images/opnpulse.yaml` |
+| repo | tag | output |
+|------|-----|--------|
+| `appscode-cloud/installer` | `APPSCODE_CLOUD_TAG` (the input) | `images/appscode-cloud.yaml` + `charts/*.yaml` |
+| `kubedb/installer` | derived | `images/kubedb.yaml` |
+| `kubestash/installer` | derived | `images/kubestash.yaml` |
+| `kubeops/installer` | derived | `images/kubeops.yaml` |
+| `kluster-manager/installer` | derived | `images/kluster-manager.yaml` |
+| `open-viz/installer` | derived | `images/open-viz.yaml` |
+| `opnpulse/installer` | derived | `images/opnpulse.yaml` |
+
+### Anchor charts
+
+`appscode-cloud/installer` pins the version of every chart an ACE release deploys
+(in `charts/opscenter-features/values.yaml`, mirrored into the `catalog/*.yaml`
+lists this repo copies to `charts/`). Each component repo owns one **anchor chart**
+there, and its pinned version is that repo's tag:
+
+| repo | anchor chart | tag env var |
+|------|--------------|-------------|
+| `kubedb/installer` | `kubedb` | `KUBEDB_TAG` |
+| `kubestash/installer` | `kubestash` | `KUBESTASH_TAG` |
+| `kubeops/installer` | `kube-ui-server` | `KUBEOPS_TAG` |
+| `kluster-manager/installer` | `cluster-profile-manager` | `KLUSTER_MANAGER_TAG` |
+| `open-viz/installer` | `monitoring-operator` | `OPEN_VIZ_TAG` |
+| `opnpulse/installer` | `appscode-otel-stack` | `OPNPULSE_TAG` |
+
+A repo's other charts are pinned on their own cadence and are **not** valid tag
+sources — nor is the repo's latest tag. Choosing a component tag by hand collects
+images for chart versions the release does not deploy, so the mirrored list is
+missing the images ACE actually pulls and an air-gapped install fails.
+
+Each derived tag can still be overridden by exporting its env var (e.g. to collect
+an rc ahead of an ACE release); every override is logged as a `WARNING:` line. If
+an anchor chart is not found in `charts/*.yaml` — a rename in a newer release — the
+run fails rather than falling back to a guess; update `COMPONENTS` in
+`hack/scripts/collect-from-orgs.sh`.
 
 External OCI charts from `ghcr.io/appscode-charts` (`hack/scripts/collect-externals.sh`):
 
@@ -85,30 +113,10 @@ External OCI charts from `ghcr.io/appscode-charts` (`hack/scripts/collect-extern
 | `keda-add-ons-http` | `hack/ci/keda-add-ons-http-ci-values.yaml` | `images/keda-add-ons-http.yaml` |
 | `snapshot-controller` | `hack/ci/snapshot-controller-ci-values.yaml` | `images/snapshot-controller.yaml` |
 
-## Default tags
-
-`default-tags.env` holds one tag per repo. GitHub can't read a file to fill
-`workflow_dispatch` defaults at runtime, so after editing it run:
-
-```sh
-make sync-defaults
-```
-
-That bakes the values into the workflow's `default:` fields (between the
-`dispatch-defaults` markers) so they appear pre-filled in the "Run workflow" UI.
-Commit the workflow change. `make collect` also reads `default-tags.env` for
-local runs; explicit environment variables override it.
-
 ## Run locally (on a VM)
 
 ```sh
 export APPSCODE_CLOUD_TAG=v2026.7.22
-export KUBEDB_TAG=...
-export KUBESTASH_TAG=...
-export KUBEOPS_TAG=...
-export KLUSTER_MANAGER_TAG=...
-export OPEN_VIZ_TAG=...
-export OPNPULSE_TAG=...
 make collect
 ```
 
