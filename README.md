@@ -8,14 +8,14 @@ directory, and publishes it as an orphan branch named after the release tag.
 On `workflow_dispatch` (`.github/workflows/collect-images.yml`) it takes a single
 git tag — `appscode_cloud_tag` — and runs, in order:
 
-1. `hack/scripts/collect-from-orgs.sh` — clone `appscode-cloud/installer` at that
+1. `go run . from-orgs` — clone `appscode-cloud/installer` at that
    tag, regenerate its catalog via its own `hack/scripts/update-catalog.sh` (which
    drives `image-packer`), copy `catalog/imagelist.yaml` to
    `images/appscode-cloud.yaml` and the catalog chart lists into `charts/`. Then
    derive each component installer's tag from those chart lists (see
    [Anchor charts](#anchor-charts)) and do the same clone + catalog + copy for
    each one.
-2. `hack/scripts/collect-externals.sh` — for each external OCI chart with curated
+2. `go run . externals` — for each external OCI chart with curated
    CI values under `hack/ci/`, `helm template` the chart and write the referenced
    images to `images/<chart>.yaml`. The chart version is resolved from the
    `charts/` lists collected in step 1, so it stays in sync with the release.
@@ -26,7 +26,7 @@ git tag — `appscode_cloud_tag` — and runs, in order:
    flattened to the branch root, with `bare-scripts/notes.md` as its `README.md`.
 
 `image-packer` (`kmodules.xyz/image-packer`) is built from source by
-`collect-from-orgs.sh` at the version pinned in `appscode-cloud/installer`'s
+`from-orgs` at the version pinned in `appscode-cloud/installer`'s
 `go.mod` for `APPSCODE_CLOUD_TAG`, so the tooling matches the release being
 collected. A Go toolchain, `helm` (x-helm build), `yq` and `yqq` must be on `PATH`.
 
@@ -63,7 +63,7 @@ The **appscode-cloud tag names the output directory and the branch**.
 
 ## Sources collected
 
-Installer repos (`hack/scripts/collect-from-orgs.sh`) — each cloned at its own tag:
+Installer repos (`go run . from-orgs`) — each cloned at its own tag:
 
 | repo | tag | output |
 |------|-----|--------|
@@ -99,10 +99,10 @@ missing the images ACE actually pulls and an air-gapped install fails.
 Each derived tag can still be overridden by exporting its env var (e.g. to collect
 an rc ahead of an ACE release); every override is logged as a `WARNING:` line. If
 an anchor chart is not found in `charts/*.yaml` — a rename in a newer release — the
-run fails rather than falling back to a guess; update `COMPONENTS` in
-`hack/scripts/collect-from-orgs.sh`.
+run fails rather than falling back to a guess; update `components` in
+`pkg/collect/orgs.go`.
 
-External OCI charts from `ghcr.io/appscode-charts` (`hack/scripts/collect-externals.sh`):
+External OCI charts from `ghcr.io/appscode-charts` (`go run . externals`):
 
 | chart | CI values | output |
 |-------|-----------|--------|

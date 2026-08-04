@@ -14,5 +14,13 @@
 
 .PHONY: collect
 collect:
-	./hack/scripts/collect-from-orgs.sh
-	./hack/scripts/collect-externals.sh
+	go run . from-orgs
+	go run . externals
+
+.PHONY: fmt
+fmt:
+	go fmt ./...
+
+.PHONY: build
+build:
+	go build ./...

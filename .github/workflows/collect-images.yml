@@ -39,12 +39,12 @@ jobs:
       - name: Collect image lists from installer orgs
         env:
           APPSCODE_CLOUD_TAG: ${{ github.event.inputs.appscode_cloud_tag }}
-        run: ./hack/scripts/collect-from-orgs.sh
+        run: go run . from-orgs
 
       - name: Collect image lists from external charts
         env:
           APPSCODE_CLOUD_TAG: ${{ github.event.inputs.appscode_cloud_tag }}
-        run: ./hack/scripts/collect-externals.sh
+        run: go run . externals
 
       - name: Aggregate grouped lists and README
         env:
@@ -60,7 +60,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch --orphan "${TAG}"
-          # collect-from-orgs.sh names the output dir after the tag; the branch is
+          # from-orgs names the output dir after the tag; the branch is
           # already the tag, so flatten it to the branch root before committing.
           mv "${TAG}"/* .
           rmdir "${TAG}"
