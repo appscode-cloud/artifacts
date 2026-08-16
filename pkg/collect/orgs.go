@@ -22,7 +22,9 @@ limitations under the License.
 //
 // For appscode-cloud/installer only, it also copies the catalog chart lists
 // (ace.yaml, editor-charts.yaml, feature-charts.yaml, reusable-ui-charts.yaml)
-// into <APPSCODE_CLOUD_TAG>/charts/.
+// into <APPSCODE_CLOUD_TAG>/charts/, and catalog/feature-chart-images.yaml into
+// images/feature-charts.yaml. That last one carries the images of the feature
+// charts that belong to no installer repo, so nothing else here publishes them.
 //
 // APPSCODE_CLOUD_TAG is the only input; it names the output dir and the release
 // being collected. Every component repo's tag is derived from it: each
@@ -33,7 +35,7 @@ limitations under the License.
 //
 // Each derived tag can still be overridden by exporting its env var (KUBEDB_TAG,
 // KUBESTASH_TAG, KUBEVAULT_TAG, KUBEOPS_TAG, KLUSTER_MANAGER_TAG, OPEN_VIZ_TAG,
-// OPNPULSE_TAG),
+// OPNPULSE_TAG, STASH_TAG, VOYAGER_TAG, VIRTUAL_SECRETS_TAG),
 // e.g. to collect an rc ahead of an ACE release; each override is logged.
 
 package collect
@@ -60,10 +62,16 @@ var components = []component{
 	{org: "kluster-manager", tagEnv: "KLUSTER_MANAGER_TAG", anchor: "cluster-profile-manager"},
 	{org: "open-viz", tagEnv: "OPEN_VIZ_TAG", anchor: "monitoring-operator"},
 	{org: "opnpulse", tagEnv: "OPNPULSE_TAG", anchor: "appscode-otel-stack"},
+	{org: "stashed", tagEnv: "STASH_TAG", anchor: "stash"},
+	{org: "voyagermesh", tagEnv: "VOYAGER_TAG", anchor: "voyager"},
+	{org: "virtual-secrets", tagEnv: "VIRTUAL_SECRETS_TAG", anchor: "virtual-secrets-server"},
 }
 
 // Chart lists copied from appscode-cloud/installer's catalog/ into charts/.
 var chartFiles = []string{"ace.yaml", "editor-charts.yaml", "feature-charts.yaml", "reusable-ui-charts.yaml"}
+
+// Image list copied from appscode-cloud/installer's catalog/ into images/.
+const featureChartImages = "feature-chart-images.yaml"
 
 var imagePackerVersionRE = regexp.MustCompile(`kmodules\.xyz/image-packer\s+(\S+)`)
 
@@ -115,6 +123,19 @@ func FromOrgs() error {
 		}
 		fmt.Printf("--> wrote %s\n", dst)
 	}
+
+	// The images the feature charts deploy. They belong to no installer repo --
+	// reloader, kyverno, longhorn, cert-manager, kube-prometheus-stack and the
+	// rest -- so nothing else in this collection publishes them.
+	src := filepath.Join(workDir, "appscode-cloud", "catalog", featureChartImages)
+	if _, err := os.Stat(src); err != nil {
+		return fmt.Errorf("%s not found for appscode-cloud/installer", src)
+	}
+	dst := filepath.Join(l.images, "feature-charts.yaml")
+	if err := copyFile(src, dst); err != nil {
+		return err
+	}
+	fmt.Printf("--> wrote %s\n", dst)
 
 	fmt.Printf("\n==> deriving component tags from appscode-cloud/installer @ %s\n", l.tag)
 	tags := make(map[string]string, len(components))

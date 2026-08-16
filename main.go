@@ -33,8 +33,6 @@ func main() {
 	switch os.Args[1] {
 	case "from-orgs":
 		err = collect.FromOrgs()
-	case "externals":
-		err = collect.Externals()
 	case "kluster-manager":
 		err = collect.KlusterManager()
 	default:
@@ -51,7 +49,6 @@ func usage() {
 
 Commands:
   from-orgs         collect per-repo catalog image lists from the installer orgs
-  externals         collect image lists for external charts with curated CI values
   kluster-manager   collect kluster-manager images embedded in CR specs
 
 Required env var:
