@@ -32,7 +32,8 @@ limitations under the License.
 // not deploy, which silently breaks an air-gapped mirror.
 //
 // Each derived tag can still be overridden by exporting its env var (KUBEDB_TAG,
-// KUBESTASH_TAG, KUBEOPS_TAG, KLUSTER_MANAGER_TAG, OPEN_VIZ_TAG, OPNPULSE_TAG),
+// KUBESTASH_TAG, KUBEVAULT_TAG, KUBEOPS_TAG, KLUSTER_MANAGER_TAG, OPEN_VIZ_TAG,
+// OPNPULSE_TAG),
 // e.g. to collect an rc ahead of an ACE release; each override is logged.
 
 package collect
@@ -54,6 +55,7 @@ type component struct {
 var components = []component{
 	{org: "kubedb", tagEnv: "KUBEDB_TAG", anchor: "kubedb"},
 	{org: "kubestash", tagEnv: "KUBESTASH_TAG", anchor: "kubestash"},
+	{org: "kubevault", tagEnv: "KUBEVAULT_TAG", anchor: "kubevault"},
 	{org: "kubeops", tagEnv: "KUBEOPS_TAG", anchor: "kube-ui-server"},
 	{org: "kluster-manager", tagEnv: "KLUSTER_MANAGER_TAG", anchor: "cluster-profile-manager"},
 	{org: "open-viz", tagEnv: "OPEN_VIZ_TAG", anchor: "monitoring-operator"},

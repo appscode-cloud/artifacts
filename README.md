@@ -44,6 +44,7 @@ The **appscode-cloud tag names the output directory and the branch**.
 │   ├── appscode-cloud.yaml
 │   ├── kubedb.yaml
 │   ├── kubestash.yaml
+│   ├── kubevault.yaml
 │   ├── kubeops.yaml
 │   ├── kluster-manager.yaml
 │   ├── open-viz.yaml
@@ -74,6 +75,7 @@ Installer repos (`go run . from-orgs`) — each cloned at its own tag:
 | `appscode-cloud/installer` | `APPSCODE_CLOUD_TAG` (the input) | `images/appscode-cloud.yaml` + `charts/*.yaml` |
 | `kubedb/installer` | derived | `images/kubedb.yaml` |
 | `kubestash/installer` | derived | `images/kubestash.yaml` |
+| `kubevault/installer` | derived | `images/kubevault.yaml` |
 | `kubeops/installer` | derived | `images/kubeops.yaml` |
 | `kluster-manager/installer` | derived | `images/kluster-manager.yaml` |
 | `open-viz/installer` | derived | `images/open-viz.yaml` |
@@ -90,6 +92,7 @@ there, and its pinned version is that repo's tag:
 |------|--------------|-------------|
 | `kubedb/installer` | `kubedb` | `KUBEDB_TAG` |
 | `kubestash/installer` | `kubestash` | `KUBESTASH_TAG` |
+| `kubevault/installer` | `kubevault` | `KUBEVAULT_TAG` |
 | `kubeops/installer` | `kube-ui-server` | `KUBEOPS_TAG` |
 | `kluster-manager/installer` | `cluster-profile-manager` | `KLUSTER_MANAGER_TAG` |
 | `open-viz/installer` | `monitoring-operator` | `OPEN_VIZ_TAG` |
