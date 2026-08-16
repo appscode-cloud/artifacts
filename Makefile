@@ -15,7 +15,6 @@
 .PHONY: collect
 collect:
 	go run . from-orgs
-	go run . externals
 	go run . kluster-manager
 
 .PHONY: fmt

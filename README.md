@@ -11,22 +11,19 @@ git tag — `appscode_cloud_tag` — and runs, in order:
 1. `go run . from-orgs` — clone `appscode-cloud/installer` at that
    tag, regenerate its catalog via its own `hack/scripts/update-catalog.sh` (which
    drives `image-packer`), copy `catalog/imagelist.yaml` to
-   `images/appscode-cloud.yaml` and the catalog chart lists into `charts/`. Then
+   `images/appscode-cloud.yaml`, `catalog/feature-chart-images.yaml` to
+   `images/feature-charts.yaml`, and the catalog chart lists into `charts/`. Then
    derive each component installer's tag from those chart lists (see
    [Anchor charts](#anchor-charts)) and do the same clone + catalog + copy for
    each one.
-2. `go run . externals` — for each external OCI chart with curated
-   CI values under `hack/ci/`, `helm template` the chart and write the referenced
-   images to `images/<chart>.yaml`. The chart version is resolved from the
-   `charts/` lists collected in step 1, so it stays in sync with the release.
-3. `go run . kluster-manager` — `helm template` the two kluster-manager charts
+2. `go run . kluster-manager` — `helm template` the two kluster-manager charts
    whose images sit inside CR specs (so `image-packer` does not see them) and merge
    them into `images/kluster-manager.yaml`. See
    [CR-embedded images](#cr-embedded-images).
-4. `bare-scripts/aggregate-lists.sh` — merge `images/*.yaml` and `charts/*.yaml`
+3. `bare-scripts/aggregate-lists.sh` — merge `images/*.yaml` and `charts/*.yaml`
    into grouped `all-images.yaml` / `all-charts.yaml`, each source file becoming a
    `# <name>` section.
-5. push the directory to an orphan branch named after the appscode-cloud tag,
+4. push the directory to an orphan branch named after the appscode-cloud tag,
    flattened to the branch root, with `bare-scripts/notes.md` as its `README.md`.
 
 `image-packer` (`kmodules.xyz/image-packer`) is built from source by
@@ -49,12 +46,10 @@ The **appscode-cloud tag names the output directory and the branch**.
 │   ├── kluster-manager.yaml
 │   ├── open-viz.yaml
 │   ├── opnpulse.yaml
-│   ├── kube-prometheus-stack.yaml
-│   ├── cert-manager.yaml
-│   ├── flux2.yaml
-│   ├── keda.yaml
-│   ├── keda-add-ons-http.yaml
-│   └── snapshot-controller.yaml
+│   ├── stashed.yaml
+│   ├── voyagermesh.yaml
+│   ├── virtual-secrets.yaml
+│   └── feature-charts.yaml
 ├── charts/
 │   ├── ace.yaml
 │   ├── editor-charts.yaml
@@ -80,6 +75,9 @@ Installer repos (`go run . from-orgs`) — each cloned at its own tag:
 | `kluster-manager/installer` | derived | `images/kluster-manager.yaml` |
 | `open-viz/installer` | derived | `images/open-viz.yaml` |
 | `opnpulse/installer` | derived | `images/opnpulse.yaml` |
+| `stashed/installer` | derived | `images/stashed.yaml` |
+| `voyagermesh/installer` | derived | `images/voyagermesh.yaml` |
+| `virtual-secrets/installer` | derived | `images/virtual-secrets.yaml` |
 
 ### Anchor charts
 
@@ -97,6 +95,9 @@ there, and its pinned version is that repo's tag:
 | `kluster-manager/installer` | `cluster-profile-manager` | `KLUSTER_MANAGER_TAG` |
 | `open-viz/installer` | `monitoring-operator` | `OPEN_VIZ_TAG` |
 | `opnpulse/installer` | `appscode-otel-stack` | `OPNPULSE_TAG` |
+| `stashed/installer` | `stash` | `STASH_TAG` |
+| `voyagermesh/installer` | `voyager` | `VOYAGER_TAG` |
+| `virtual-secrets/installer` | `virtual-secrets-server` | `VIRTUAL_SECRETS_TAG` |
 
 A repo's other charts are pinned on their own cadence and are **not** valid tag
 sources — nor is the repo's latest tag. Choosing a component tag by hand collects
@@ -109,16 +110,23 @@ an anchor chart is not found in `charts/*.yaml` — a rename in a newer release 
 run fails rather than falling back to a guess; update `components` in
 `pkg/collect/orgs.go`.
 
-External OCI charts from `ghcr.io/appscode-charts` (`go run . externals`):
+### Feature chart images
 
-| chart | CI values | output |
-|-------|-----------|--------|
-| `kube-prometheus-stack` | `hack/ci/prometheus-stack-ci-values.yaml` | `images/kube-prometheus-stack.yaml` |
-| `cert-manager` | `hack/ci/cert-manager-ci-values.yaml` | `images/cert-manager.yaml` |
-| `flux2` | `hack/ci/flux2-ci-values.yaml` | `images/flux2.yaml` |
-| `keda` | `hack/ci/keda-ci-values.yaml` | `images/keda.yaml` |
-| `keda-add-ons-http` | `hack/ci/keda-add-ons-http-ci-values.yaml` | `images/keda-add-ons-http.yaml` |
-| `snapshot-controller` | `hack/ci/snapshot-controller-ci-values.yaml` | `images/snapshot-controller.yaml` |
+Every chart an ACE release deploys is pinned in `charts/feature-charts.yaml`, but
+most of those charts' **images** are published by the installer repo that owns
+them. The rest — `reloader`, `prometheus-adapter`, `kyverno`, `longhorn`,
+`opencost`, `cert-manager`, `flux2`, `keda`, `kube-prometheus-stack`,
+`snapshot-controller` and friends — belong to no installer repo.
+
+`appscode-cloud/installer` renders those at their pinned version, using the
+values the `Feature` itself carries, into `catalog/feature-chart-images.yaml`;
+step 1 copies it to `images/feature-charts.yaml`. Which charts are skipped as
+already-published is decided there, in `hack/scripts/update-catalog.sh`.
+
+`pkg/collect/externals.go` and `hack/ci/*-ci-values.yaml` did this for six of
+those charts from hand-maintained values. They are retained but no longer run:
+the curated values had drifted from what ACE deploys (they built the flux2
+kustomize and notification controllers, which the ACE `Feature` disables).
 
 ### CR-embedded images
 
