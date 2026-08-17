@@ -20,10 +20,13 @@ git tag — `appscode_cloud_tag` — and runs, in order:
    whose images sit inside CR specs (so `image-packer` does not see them) and merge
    them into `images/kluster-manager.yaml`. See
    [CR-embedded images](#cr-embedded-images).
-3. `bare-scripts/aggregate-lists.sh` — merge `images/*.yaml` and `charts/*.yaml`
+3. `go run . voyagermesh` — `helm template` the `service-gateway` chart of
+   `appscode-cloud/installer` and merge the envoy image it pins into
+   `images/voyagermesh.yaml`. See [The envoy image](#the-envoy-image).
+4. `bare-scripts/aggregate-lists.sh` — merge `images/*.yaml` and `charts/*.yaml`
    into grouped `all-images.yaml` / `all-charts.yaml`, each source file becoming a
    `# <name>` section.
-4. push the directory to an orphan branch named after the appscode-cloud tag,
+5. push the directory to an orphan branch named after the appscode-cloud tag,
    flattened to the branch root, with `bare-scripts/notes.md` as its `README.md`.
 
 `image-packer` (`kmodules.xyz/image-packer`) is built from source by
@@ -152,6 +155,25 @@ each repo is joined with its tag from
 at the chart's `appVersion`, matched by section name (`helmController`,
 `sourceController`, …). A repo with no matching tag fails the run rather than
 emitting an untagged, unmirrorable ref.
+
+### The envoy image
+
+`ghcr.io/voyagermesh/envoy` is a voyagermesh image that no pod spec in
+`voyagermesh/installer` references, so it is absent from that repo's
+`catalog/imagelist.yaml`. It is pinned by `appscode-cloud/installer` instead:
+`charts/service-gateway` renders `envoy.image`/`envoy.tag` into an `EnvoyProxy`
+CR (`templates/gateway/gwclass.yaml`), and the gateway deployment from the
+`voyager-gateway` subchart — voyagermesh's own chart, vendored into
+`service-gateway` — reconciles that CR into the envoy Deployment + Service.
+
+`go run . voyagermesh` renders just that template (version resolved from
+`charts/ace.yaml`, which pins `service-gateway`) and merges the image into
+`images/voyagermesh.yaml`, where it belongs by ownership. The merge is a union,
+so the command is safe to re-run.
+
+The ref is read off the rendered CR rather than joined from the raw values, so it
+stays correct if the chart templates it differently — a `provisionerType` of
+`DaemonSet` writes `envoyDaemonSet.container.image` instead.
 
 ## Run locally (on a VM)
 

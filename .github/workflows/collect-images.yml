@@ -46,6 +46,11 @@ jobs:
           APPSCODE_CLOUD_TAG: ${{ github.event.inputs.appscode_cloud_tag }}
         run: go run . kluster-manager
 
+      - name: Collect the envoy image pinned by the service-gateway chart
+        env:
+          APPSCODE_CLOUD_TAG: ${{ github.event.inputs.appscode_cloud_tag }}
+        run: go run . voyagermesh
+
       - name: Aggregate grouped lists and README
         env:
           TAG: ${{ github.event.inputs.appscode_cloud_tag }}

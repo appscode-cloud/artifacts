@@ -35,6 +35,8 @@ func main() {
 		err = collect.FromOrgs()
 	case "kluster-manager":
 		err = collect.KlusterManager()
+	case "voyagermesh":
+		err = collect.Voyagermesh()
 	default:
 		usage()
 	}
@@ -50,6 +52,7 @@ func usage() {
 Commands:
   from-orgs         collect per-repo catalog image lists from the installer orgs
   kluster-manager   collect kluster-manager images embedded in CR specs
+  voyagermesh       collect the envoy image pinned by the service-gateway chart
 
 Required env var:
   APPSCODE_CLOUD_TAG   appscode-cloud/installer tag; names the output dir

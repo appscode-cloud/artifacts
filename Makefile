@@ -16,6 +16,7 @@
 collect:
 	go run . from-orgs
 	go run . kluster-manager
+	go run . voyagermesh
 
 .PHONY: fmt
 fmt:
