@@ -46,6 +46,12 @@ const (
 	serviceGatewayTemplate = "templates/gateway/gwclass.yaml"
 )
 
+// gwclass.yaml is guarded on these CRDs being served; helm template is offline.
+var serviceGatewayAPIVersions = []string{
+	"gateway.networking.k8s.io/v1beta1/GatewayClass",
+	"gateway.envoyproxy.io/v1alpha1/EnvoyProxy",
+}
+
 func Voyagermesh() error {
 	l, err := newLayout()
 	if err != nil {
@@ -70,7 +76,7 @@ func Voyagermesh() error {
 	}
 
 	fmt.Printf("==> %s @ %s\n", serviceGatewayChart, ver)
-	render, err := renderTemplate(serviceGatewayChart, ver, serviceGatewayTemplate)
+	render, err := renderTemplate(serviceGatewayChart, ver, serviceGatewayTemplate, serviceGatewayAPIVersions...)
 	if err != nil {
 		return err
 	}
