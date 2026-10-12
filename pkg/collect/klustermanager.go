@@ -157,9 +157,13 @@ func fluxcdManagerImages(version string) ([]string, error) {
 	return sortUnique(refs), nil
 }
 
-func renderTemplate(chart, version, tmpl string) (string, error) {
-	return output("", "helm", "template", chart, ociPrefix+"/"+chart,
-		"--version", version, "-n", chart, "--show-only", tmpl)
+func renderTemplate(chart, version, tmpl string, apiVersions ...string) (string, error) {
+	args := []string{"template", chart, ociPrefix + "/" + chart,
+		"--version", version, "-n", chart, "--show-only", tmpl}
+	for _, v := range apiVersions {
+		args = append(args, "--api-versions", v)
+	}
+	return output("", "helm", args...)
 }
 
 func chartAppVersion(chart, version string) (string, error) {
