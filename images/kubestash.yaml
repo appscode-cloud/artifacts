@@ -1,0 +1,10 @@
+- ghcr.io/appscode/kubectl-nonroot:1.34
+- ghcr.io/kubestash/kubedump:v0.31.0
+- ghcr.io/kubestash/kubestash-ui-server:v0.4.0
+- ghcr.io/kubestash/kubestash:v0.32.0
+- ghcr.io/kubestash/kubevirt-plugin:v0.4.0
+- ghcr.io/kubestash/manifest:v0.24.0
+- ghcr.io/kubestash/pvc:v0.31.0
+- ghcr.io/kubestash/vault:v0.6.0
+- ghcr.io/kubestash/volume-snapshotter:v0.31.0
+- ghcr.io/kubestash/workload:v0.31.0
